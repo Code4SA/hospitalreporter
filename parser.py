@@ -1,5 +1,7 @@
 import sys
+import codecs
 import os
+import dataset
 
 class Parser(object):
     SKIP = "skip"
@@ -17,7 +19,6 @@ class Parser(object):
         if row.startswith("Facility:"):
             self.data["facility"] = row.split(":")[1].strip()
             self.state = self.s_overview 
-
 
     def s_overview(self, row):
         if row.startswith("1. Facility Overview"):
@@ -44,8 +45,8 @@ class Parser(object):
             if not ("Latitude" in parts[0] and "Longitude" in parts[1]):
                 raise Exception("Unexpected Row")
 
-            self.data["lat"] = parts[0].split(":")[1].strip()
-            self.data["lng"] = parts[1].split(":")[1].strip()
+            self.data["lat"] = float(parts[0].split(":")[1].strip())
+            self.data["lng"] = float(parts[1].split(":")[1].strip())
 
             self.state = self.s_street
 
@@ -88,18 +89,24 @@ class Parser(object):
         if "Manager Name" in row: 
             self.data["manager"] = row.replace("Manager Name", "").strip()
         
-    def parse(self, fname):
-        for row in open(fname):
+    def parse(self, fp):
+        for row in fp:
             while True:
                 emit = self.state(row)
                 if emit != Parser.SKIP: break
     
 
 def from_pdf(fname):
-    cmd = "pdftotext -layout '%s' tmp.txt" % fname
+    cmd = 'pdftotext -layout "%s" tmp.txt' % fname
     os.system(cmd)
-    return "tmp.txt"
+    return codecs.open("tmp.txt", "r", "utf8")
     
-parser = Parser()
-parser.parse(from_pdf(sys.argv[1]))
-print parser.data
+db = dataset.connect('sqlite:///clinics.db')
+clinics = db["clinics"]
+for dir, _, files in os.walk("/home/adi/Data/CityPress - Hospitals/facility_profile"):
+    for file in files:
+        parser = Parser()
+        fname = os.path.join(dir, file)
+        parser.parse(from_pdf(fname))
+        if parser.data:
+            clinics.upsert(parser.data, ["facility"])

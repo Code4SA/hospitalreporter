@@ -1,0 +1,12 @@
+common:
+
+  database: "sqlite:///clinics.db"
+  prefix: my_project/dumps/
+  format: csv
+
+exports:
+
+  - query: "select * from clinics"
+    filename: "out.csv"
+    format: csv
+
