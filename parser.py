@@ -103,7 +103,7 @@ def from_pdf(fname):
     
 db = dataset.connect('sqlite:///clinics.db')
 clinics = db["clinics"]
-for dir, _, files in os.walk("/home/adi/Data/CityPress - Hospitals/facility_profile"):
+for dir, _, files in os.walk(sys.argv[1]):
     for file in files:
         parser = Parser()
         fname = os.path.join(dir, file)
